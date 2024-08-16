@@ -11,21 +11,70 @@
     switch($accion) {
         case "Agregar": 
             // INSERT INTO `pelotas` (`id`, `nombre`, `imagen`) VALUES (NULL, 'Pelota de basquet', 'basquet.jpg');
-            $sentenciaSQL = $conexion -> prepare("INSERT INTO `pelotas` (nombre, imagen) VALUES (:nombre, :imagen);");
+            $sentenciaSQL = $conexion -> prepare("INSERT INTO pelotas (nombre, imagen) VALUES (:nombre, :imagen);");
             $sentenciaSQL -> bindParam(':nombre', $txtNombre);
-            $sentenciaSQL -> bindParam(':imagen', $txtImg);
+
+            // Subir archivo a carpeta local
+            $fecha = new DateTime();
+            $nombreArchivo = ($txtImg != "") ? $fecha -> getTimestamp()."_".$_FILES['txtImg']['name'] : "imagen.jpg";
+
+            $tmpImg = $_FILES['txtImg']['tmp_name'];
+            if ($tmpImg != "") {
+                move_uploaded_file($tmpImg, "../../img/".$nombreArchivo);
+            }
+
+            $sentenciaSQL -> bindParam(':imagen', $nombreArchivo);
+            //
             $sentenciaSQL -> execute();
             break;
         case "Modificar": 
+            $sentenciaSQL = $conexion -> prepare("UPDATE pelotas SET nombre = :nombre WHERE id = :id;");
+            $sentenciaSQL -> bindParam(':nombre', $txtNombre);
+            $sentenciaSQL -> bindParam(':id', $txtID);
+            $sentenciaSQL -> execute();
+            
+            if ($txtImg != "") {
+                $sentenciaSQL = $conexion -> prepare("UPDATE pelotas SET imagen = :imagen WHERE id = :id;");
+                $sentenciaSQL -> bindParam(':imagen', $txtImg);
+                $sentenciaSQL -> bindParam(':id', $txtID);
+                $sentenciaSQL -> execute();
+            }
+
 
             break;
         case "Cancelar": 
             
             break;
         case "Seleccionar": 
+            $sentenciaSQL = $conexion -> prepare("SELECT * FROM pelotas WHERE id = :id");
+            $sentenciaSQL -> bindParam(':id', $txtID);
+            $sentenciaSQL -> execute();
+
+            $pelota = $sentenciaSQL->fetch(PDO::FETCH_LAZY);
+            $txtID = $pelota['id'];
+            $txtNombre = $pelota['nombre'];
+            $txtImg = $pelota['imagen'];
+
             break;
         case "Borrar": 
-            $sentenciaSQL = $conexion -> prepare("DELETE FROM `pelotas` WHERE `pelotas`.`id` = :id");
+            // Obtiene la imagen
+            $sentenciaSQL = $conexion -> prepare("SELECT imagen FROM pelotas WHERE id = :id");
+            $sentenciaSQL -> bindParam(':id', $txtID);
+            $sentenciaSQL -> execute();
+            // Guarda el registro de ese ID dentro de $pelota
+            $pelota = $sentenciaSQL->fetch(PDO::FETCH_LAZY);
+
+            // Pregunta si existe la imagen
+            if (isset($pelota['imagen']) && $pelota['imagen'] != "imagen.jpg") {
+                // Busca la imagen en la carpeta
+                if (file_exists("../../img/".$pelota['imagen'])) {
+                    // Borra la imagen
+                    unlink("../../img/".$pelota['imagen']);
+                }
+            }
+
+            // Borrar el registro completo
+            $sentenciaSQL = $conexion -> prepare("DELETE FROM pelotas WHERE id = :id");
             $sentenciaSQL -> bindParam(':id', $txtID);
             $sentenciaSQL -> execute();
             break;
@@ -44,15 +93,17 @@
         <div class="card-body">
             <form method="POST" enctype="multipart/form-data">
                 <div class="form-group">
-                    <input type="hidden" class="form-control" name="txtID" id="txtID" placeholder="Ingrese el ID del producto">
+                    <label for="txtId">ID:</label>
+                    <input type="text" value="<?php echo $txtID; ?>" class="form-control" name="txtID" id="txtID" placeholder="Ingrese el ID del producto">
                 </div>
                 <div class="form-group">
                     <label for="txtNombre">Nombre del producto:</label>
-                    <input type="text" class="form-control" name="txtNombre" id="txtNombre" placeholder="Ingrese el nombre del producto" required>
+                    <input type="text" value="<?php echo $txtNombre; ?>" class="form-control" name="txtNombre" id="txtNombre" placeholder="Ingrese el nombre del producto">
                 </div>
                 <div class="form-group">
                     <label for="txtImg">Imágen:</label>
-                    <input type="file" class="form-control" name="txtImg" id="txtImg" required>
+                    <?php echo $txtImg; ?>
+                    <input type="file" class="form-control" name="txtImg" id="txtImg">
                 </div>
 
                 <div class="btn-group" role="group" aria-label=""> <!--b4-bgroup-default-->
