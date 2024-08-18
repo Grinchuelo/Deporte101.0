@@ -1,6 +1,20 @@
 <?php
+  include("config/conexion.php");
+  session_start();
   if ($_POST) {
-    header('Location:inicio.php');
+    $sentenciaSQL = $conexion -> prepare("SELECT * FROM usuarios WHERE Id_usuario = 1");
+    $sentenciaSQL -> execute();
+    $usuario = $sentenciaSQL -> fetch(PDO::FETCH_LAZY);
+    if ($_POST['usernameAdmin'] == $usuario['nombre_usuario'] && $_POST['passwordAdmin'] == $usuario['cont_usuario']) {
+      $_SESSION['usuario'] = "ok";
+      $sentenciaSQL = $conexion -> prepare("SELECT nombre_usuario FROM usuarios WHERE Id_usuario = 1");
+      $sentenciaSQL -> execute();
+      $usuario = $sentenciaSQL -> fetch(PDO::FETCH_LAZY);
+      $_SESSION['nombreUsuario'] = $usuario['nombre_usuario'];
+      header('Location:inicio.php');
+    } else {
+      $mensaje = "Error: El usuario o contraseña son incorrectos";
+    }
   }
 ?>
 
@@ -26,7 +40,13 @@
           <div class="card-header">
             Login
           </div>
+
           <div class="card-body">
+          <?php  if (isset($mensaje)) { ?>
+            <div class="alert alert-danger" role="alert">
+                  <?php echo $mensaje; ?>         
+            </div>
+          <?php } ?>
             <form action="" method="POST"> <!--!crt-form-login-->
               <div class="form-group">
                 <label>Usuario</label>

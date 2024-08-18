@@ -26,6 +26,8 @@
             $sentenciaSQL -> bindParam(':imagen', $nombreArchivo);
             //
             $sentenciaSQL -> execute();
+
+            header('Location:productos.php');
             break;
         case "Modificar": 
             $sentenciaSQL = $conexion -> prepare("UPDATE pelotas SET nombre = :nombre WHERE id = :id;");
@@ -34,16 +36,38 @@
             $sentenciaSQL -> execute();
             
             if ($txtImg != "") {
-                $sentenciaSQL = $conexion -> prepare("UPDATE pelotas SET imagen = :imagen WHERE id = :id;");
-                $sentenciaSQL -> bindParam(':imagen', $txtImg);
+                $fecha = new DateTime();
+                $nombreArchivo = $fecha -> getTimestamp()."_".$_FILES['txtImg']['name'];
+                $tmpImg = $_FILES['txtImg']['tmp_name'];
+                move_uploaded_file($tmpImg, "../../img/".$nombreArchivo);
+                
+                $sentenciaSQL = $conexion -> prepare("SELECT imagen FROM pelotas WHERE id = :id");
                 $sentenciaSQL -> bindParam(':id', $txtID);
                 $sentenciaSQL -> execute();
+                // Guarda el registro de ese ID dentro de $pelota
+                $pelota = $sentenciaSQL->fetch(PDO::FETCH_LAZY);
+
+                
+                // Pregunta si existe la imagen
+                if (isset($pelota['imagen']) && $pelota['imagen'] != "imagen.jpg") {
+                    // Busca la imagen en la carpeta
+                    if (file_exists("../../img/".$pelota['imagen'])) {
+                        // Borra la imagen
+                        unlink("../../img/".$pelota['imagen']);
+                    }
+                }
+
+                $sentenciaSQL = $conexion -> prepare("UPDATE pelotas SET imagen = :imagen WHERE id = :id;");
+                $sentenciaSQL -> bindParam(':imagen', $nombreArchivo);
+                $sentenciaSQL -> bindParam(':id', $txtID);
+                $sentenciaSQL -> execute();
+
             }
 
-
+            header('Location:productos.php');
             break;
         case "Cancelar": 
-            
+            header('Location:productos.php');
             break;
         case "Seleccionar": 
             $sentenciaSQL = $conexion -> prepare("SELECT * FROM pelotas WHERE id = :id");
@@ -77,6 +101,8 @@
             $sentenciaSQL = $conexion -> prepare("DELETE FROM pelotas WHERE id = :id");
             $sentenciaSQL -> bindParam(':id', $txtID);
             $sentenciaSQL -> execute();
+
+            header('Location:productos.php');
             break;
     }
 
@@ -93,23 +119,27 @@
         <div class="card-body">
             <form method="POST" enctype="multipart/form-data">
                 <div class="form-group">
-                    <label for="txtId">ID:</label>
-                    <input type="text" value="<?php echo $txtID; ?>" class="form-control" name="txtID" id="txtID" placeholder="Ingrese el ID del producto">
+                    <label for="txtID">ID:</label>
+                    <input type="text" value="<?php echo $txtID; ?>" class="form-control" name="txtID" id="txtID" required readonly>
                 </div>
                 <div class="form-group">
                     <label for="txtNombre">Nombre del producto:</label>
-                    <input type="text" value="<?php echo $txtNombre; ?>" class="form-control" name="txtNombre" id="txtNombre" placeholder="Ingrese el nombre del producto">
+                    <input type="text" value="<?php echo $txtNombre; ?>" class="form-control" name="txtNombre" id="txtNombre" placeholder="Ingrese el nombre del producto" required>
                 </div>
                 <div class="form-group">
                     <label for="txtImg">Imágen:</label>
-                    <?php echo $txtImg; ?>
+                    
+                    <?php if ($txtImg != "") { ?>
+                        <img class="img-thumbnail rounded" src="<?php echo "../../img/".$txtImg;?>" width="180" alt="<?php echo $txtImg;?>">
+                    <?php }?>
+
                     <input type="file" class="form-control" name="txtImg" id="txtImg">
                 </div>
 
                 <div class="btn-group" role="group" aria-label=""> <!--b4-bgroup-default-->
-                    <button type="submit" name="accion" value="Agregar" class="btn btn-success">Agregar</button>
-                    <button type="submit" name="accion" value="Modificar" class="btn btn-warning text-light">Modificar</button>
-                    <button type="submit" name="accion" value="Cancelar" class="btn btn-info">Cancelar</button>
+                    <button type="submit" name="accion" <?php echo ($accion == "Seleccionar") ? "disabled" : ""; ?> value="Agregar" class="btn btn-success">Agregar</button>
+                    <button type="submit" name="accion" <?php echo ($accion != "Seleccionar") ? "disabled" : ""; ?> value="Modificar" class="btn btn-warning text-light">Modificar</button>
+                    <button type="submit" name="accion" <?php echo ($accion != "Seleccionar") ? "disabled" : ""; ?> value="Cancelar" class="btn btn-info">Cancelar</button>
                 </div>
             </form>
         </div>
@@ -132,7 +162,9 @@
             <tr>
                 <td><?php echo $pelota['id']; ?></td>
                 <td><?php echo $pelota['nombre']; ?></td>
-                <td><?php echo $pelota['imagen']; ?></td>
+                <td class="text-center">
+                    <img class="rounded" src="<?php echo "../../img/".$pelota['imagen'];?>" width="50" alt="<?php echo $pelota['imagen'];?>">    
+                </td>
                 <td>
 
                 <form method="post">
