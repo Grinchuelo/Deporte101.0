@@ -9,6 +9,7 @@
 ?>
 
 <?php foreach($listaPelotas as $pelota) { ?>
+    
 
 <div class="col-md-3">
     <div class="card">

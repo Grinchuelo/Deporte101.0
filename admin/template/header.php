@@ -30,7 +30,7 @@
             <a class="nav-item nav-link" href="<?php echo $url;?>/admin/sections/cerrar.php">Cerrar sesión</a>
         </div>
     </nav>
-
+  
     <div class="container">
         <br>
         <div class="row">
